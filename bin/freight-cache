@@ -11,6 +11,7 @@ usage() {
 	echo "Usage: $(basename $0) [-k] [-g <email>] [-c <conf>] [-v] [-h] [<manager>/<distro>][...]" >&2
 	[ -n "$1" ] && {
 		echo "  -k, --keep                keep unreferenced versions of packages" >&2
+		echo "  -p, --prune               prune all but newest versions of packages" >&2
 		echo "  -g <email>, --gpg=<email> GPG key to use" >&2
 		echo "  -c <conf>, --conf=<conf>  config file to parse" >&2
 		echo "  -v, --verbose             verbose mode" >&2
@@ -24,6 +25,9 @@ do
 	case "$1" in
 		-k|--keep)
 			KEEP=1
+			shift;;
+		-p|--prune)
+			PRUNE=1
 			shift;;
 		-g|--gpg)
 			GPG="$2"
@@ -90,6 +94,12 @@ do
 	# whatever it wants.
 	. "$MANAGER.sh"
 	SORT="$(sort -V </dev/null 2>/dev/null && echo "sort -V" || echo "sort")"
+	if ! [ -z "$PRUNE" ]; then
+		find "$DIR" -type f -printf %P\\n 2>/dev/null |
+		eval "$SORT" |
+		eval "${MANAGER}_prune" "$DIST"
+	fi
+
 	find "$DIR" -type f -printf %P\\n 2>/dev/null |
 	eval "$SORT" |
 	eval "${MANAGER}_cache" "$DIST"

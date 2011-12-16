@@ -1,3 +1,4 @@
+# dpkg --compare-versions $(dpkg-deb -W --showformat='${Version}' facter_1.6.4-1puppetlabs1_all.deb) lt $(dpkg-deb -W --showformat='${Version}' facter_1.6.3-1puppetlabs1_all.deb)
 # Fetch the given field from the package's control file.
 apt_info() {
 	egrep -i "^$2:" "$1" | cut -d: -f2- | cut -c2-
@@ -378,4 +379,13 @@ apt_cache_source() {
 # Clean up old packages in the pool.
 apt_clean() {
 	find "$VARCACHE/pool" -links 1 -delete || true
+}
+
+# Prune old packages in the pool.
+apt_prune() {
+	while read PATHNAME
+	do
+		echo $PATHNAME
+		
+	done
 }
