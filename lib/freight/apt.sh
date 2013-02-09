@@ -105,7 +105,7 @@ apt_cache() {
 			# and will find the associated *.orig.tar.gz and *.diff.gz as
 			# they are needed.
 			*.dsc) apt_cache_source "$DIST" "$DISTCACHE" "$PATHNAME" "$COMP" "$PACKAGE";;
-			*.debian.tar.gz|*.diff.gz|*.orig.tar.gz) ;;
+			*.debian.tar.gz|*.diff.gz|*.orig.tar.gz|*.deb-control) ;;
 
 			*) echo "# [freight] skipping extraneous file $PATHNAME" >&2;;
 		esac
@@ -217,10 +217,19 @@ apt_cache_binary() {
 
 	# Verify this package by way of extracting its control information
 	# to be used throughout this iteration of the loop.
-	dpkg-deb -e "$VARLIB/apt/$DIST/$PATHNAME" "$TMP/DEBIAN" || {
-		echo "# [freight] skipping invalid Debian package $PATHNAME" >&2
-		return
-	}
+	# Don't extract the deb archive each time. Stick the control file
+	# in the $VARLIB alongside the other package artifacts for easy
+	# use later.
+	CONTROL="$VARLIB/apt/$DIST/$PATHNAME-control"
+	if ! [ -e "$CONTROL" ]; then
+		echo "No control file cache yet. Creating..." >&2
+		dpkg-deb -e "$VARLIB/apt/$DIST/$PATHNAME" "$TMP/DEBIAN" || {
+			echo "# [freight] skipping invalid Debian package $PATHNAME" >&2
+			return
+		}
+		echo "Copying control file into cache" >&2
+		cp "$TMP/DEBIAN/control" "$CONTROL"
+	fi
 
 	# Create all architecture-specific directories.  This will allow
 	# packages marked `all` to actually be placed in all architectures.
@@ -237,7 +246,7 @@ apt_cache_binary() {
 
 	# Package properties.  Remove the epoch from the version number
 	# in the package filename, as is customary.
-	CONTROL="$TMP/DEBIAN/control"
+	#CONTROL="$TMP/DEBIAN/control"
 	ARCH="$(apt_binary_arch "$CONTROL")"
 	NAME="$(apt_binary_name "$CONTROL")"
 	VERSION="$(apt_binary_version "$CONTROL")"
@@ -269,7 +278,7 @@ apt_cache_binary() {
 	# generated values.  Add the `Filename` field containing the
 	# path to the package, starting with `pool/`.
 	{
-		grep . "$TMP/DEBIAN/control" |
+		grep . "$CONTROL" |
 		grep -v "^(Essential|Filename|MD5Sum|SHA1|SHA256|Size)"
 		cat <<EOF
 Filename: $POOL/$FILENAME
@@ -280,7 +289,9 @@ Size: $(apt_filesize "$VARLIB/apt/$DIST/$PATHNAME")
 EOF
 		echo
 	} | tee -a $FILES >/dev/null
-	rm -rf "$TMP/DEBIAN"
+	if [ -d "$TMP/DEBIAN" ]; then
+		rm -rf "$TMP/DEBIAN"
+	fi
 
 }
 
