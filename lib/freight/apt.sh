@@ -290,7 +290,7 @@ EOF
 	# `Size`, `MD5Sum`, etc. lines and replace them with newly
 	# generated values.  Add the `Filename` field containing the
 	# path to the package, starting with `pool/`.
-	sed "s,Filename: FILENAME,Filename: $POOL/$FILENAME,g" |
+	sed "s,Filename: FILENAME,Filename: $POOL/$FILENAME,g" "$CONTROL" |
 	tee -a $FILES >/dev/null
 	if [ -d "$TMP/DEBIAN" ]; then
 		rm -rf "$TMP/DEBIAN"
