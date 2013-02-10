@@ -222,13 +222,16 @@ apt_cache_binary() {
 	# use later.
 	CONTROL="$VARLIB/apt/$DIST/$PATHNAME-control"
 	if ! [ -e "$CONTROL" ]; then
-		echo "No control file cache yet. Creating..." >&2
 		dpkg-deb -e "$VARLIB/apt/$DIST/$PATHNAME" "$TMP/DEBIAN" || {
 			echo "# [freight] skipping invalid Debian package $PATHNAME" >&2
 			return
 		}
-		echo "Copying control file into cache" >&2
 		{
+			# Grab and augment the control file from this package.  Remove
+			# `Size`, `MD5Sum`, etc. lines and replace them with newly
+			# generated values. Update it once when generating the
+			# cached control file. Add a Filename line that can be updated
+			# easily later with the real path.
 			grep . "$TMP/DEBIAN/control" |
 			grep -v "^(Essential|Filename|MD5Sum|SHA1|SHA256|Size)"
 			cat <<EOF
@@ -240,9 +243,11 @@ Size: $(apt_filesize "$VARLIB/apt/$DIST/$PATHNAME")
 EOF
 		echo
 		} > "$CONTROL"
-		echo "CONTROL file written" >&2
+		# Cleanup the extracted package
+		if [ -d "$TMP/DEBIAN" ]; then
+			rm -rf "$TMP/DEBIAN"
+		fi
 	fi
-
 
 	# Create all architecture-specific directories.  This will allow
 	# packages marked `all` to actually be placed in all architectures.
@@ -259,7 +264,6 @@ EOF
 
 	# Package properties.  Remove the epoch from the version number
 	# in the package filename, as is customary.
-	#CONTROL="$TMP/DEBIAN/control"
 	ARCH="$(apt_binary_arch "$CONTROL")"
 	NAME="$(apt_binary_name "$CONTROL")"
 	VERSION="$(apt_binary_version "$CONTROL")"
@@ -286,15 +290,10 @@ EOF
 	else FILES="$DISTCACHE/$COMP/binary-$ARCH/Packages"
 	fi
 
-	# Grab and augment the control file from this package.  Remove
-	# `Size`, `MD5Sum`, etc. lines and replace them with newly
-	# generated values.  Add the `Filename` field containing the
-	# path to the package, starting with `pool/`.
-	sed "s,Filename: FILENAME,Filename: $POOL/$FILENAME,g" "$CONTROL" |
+	# Add the `Filename` field containing the path to the
+	# package, starting with `pool/`.
+	sed "s,^Filename: FILENAME$,Filename: $POOL/$FILENAME,g" "$CONTROL" |
 	tee -a $FILES >/dev/null
-	if [ -d "$TMP/DEBIAN" ]; then
-		rm -rf "$TMP/DEBIAN"
-	fi
 
 }
 
