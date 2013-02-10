@@ -222,6 +222,7 @@ apt_cache_binary() {
 	# use later.
 	CONTROL="$VARLIB/apt/$DIST/$PATHNAME-control"
 	if ! [ -e "$CONTROL" ]; then
+
 		echo "No control file cache yet. Creating..." >&2
 		dpkg-deb -e "$VARLIB/apt/$DIST/$PATHNAME" "$TMP/DEBIAN" || {
 			echo "# [freight] skipping invalid Debian package $PATHNAME" >&2
@@ -280,13 +281,13 @@ apt_cache_binary() {
 	{
 		grep . "$CONTROL" |
 		grep -v "^(Essential|Filename|MD5Sum|SHA1|SHA256|Size)"
-		cat <<EOF
-Filename: $POOL/$FILENAME
-MD5sum: $(apt_md5 "$VARLIB/apt/$DIST/$PATHNAME")
-SHA1: $(apt_sha1 "$VARLIB/apt/$DIST/$PATHNAME")
-SHA256: $(apt_sha256 "$VARLIB/apt/$DIST/$PATHNAME")
-Size: $(apt_filesize "$VARLIB/apt/$DIST/$PATHNAME")
-EOF
+#		cat <<EOF
+#Filename: $POOL/$FILENAME
+#MD5sum: $(apt_md5 "$VARLIB/apt/$DIST/$PATHNAME")
+#SHA1: $(apt_sha1 "$VARLIB/apt/$DIST/$PATHNAME")
+#SHA256: $(apt_sha256 "$VARLIB/apt/$DIST/$PATHNAME")
+#Size: $(apt_filesize "$VARLIB/apt/$DIST/$PATHNAME")
+#EOF
 		echo
 	} | tee -a $FILES >/dev/null
 	if [ -d "$TMP/DEBIAN" ]; then
