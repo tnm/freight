@@ -392,7 +392,7 @@ apt_cache_source() {
 	} > "$VARLIB/apt/$DIST/$PATHNAME-cached"
 
 	sed "s,^Directory: DIRECTORY$,Directory: $POOL,g" "$VARLIB/apt/$DIST/$PATHNAME-cached" |
-	tee -a "$DISTCACHE/$COMP/source/Sources"
+	tee -a "$DISTCACHE/$COMP/source/Sources" >/dev/null
 
 }
 
