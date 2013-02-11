@@ -361,6 +361,7 @@ apt_cache_source() {
 	# Grab and augment the control fields from this source package.  Remove
 	# and recalculate file checksums.  Change the `Source` field to `Package`.
 	# Add the `Directory` field.
+	echo "apt_cache_source with PATHNAME of $VARLIB/apt/$DIST/$PATHNAME"
 	{
 		egrep "^[A-Z][^:]+: ." "$VARLIB/apt/$DIST/$PATHNAME" |
 		egrep -v "^(Version: GnuPG|Hash: )" |
