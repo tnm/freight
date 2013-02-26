@@ -11,7 +11,7 @@ LABEL="Freight"
 
 # Whether or not Freight should regenerate all of the control files for each
 # run.
-CACHE="off"
+CACHE="on"
 
 # GPG key to use to sign repositories.  This is required by the `apt`
 # repository provider.  Use `gpg --gen-key` (see `gpg`(1) for more
