@@ -2,40 +2,31 @@
 
 # Add a package to the Freight library.
 
+#/ Usage: freight add [-c <conf>] [-v] [-h] <package> <manager>/<distro>...
+#/   -c <conf>, --conf=<conf> config file to parse
+#/   -v, --verbose            verbose mode
+#/   -h, --help               show this help message
+
 set -e
 
-# Combined usage message and help screen.
 usage() {
-	echo "Usage: $(basename $0) [-c <conf>] [-v] [-h] <package> <manager>/<distro>..." >&2
-	[ -n "$1" ] && {
-		echo "  -c <conf>, --conf=<conf> config file to parse" >&2
-		echo "  -v, --verbose            verbose mode" >&2
-		echo "  -h, --help               show this help message" >&2
-	} && exit 0 || exit 1
+    grep "^#/" "$0" | cut -c"4-" >&2
+    exit "$1"
 }
-
-# `getopts` doesn't support long options so this will have to do.
 while [ "$#" -gt 0 ]
 do
 	case "$1" in
-		-c|--conf)
-			CONF="$2"
-			shift 2;;
-		-c*)
-			CONF="$(echo $1 | cut -c3-)"
-			shift;;
-		--conf=*)
-			CONF="$(echo $1 | cut -c8-)"
-			shift;;
-		-v|--verbose)
-			VERBOSE=1
-			shift;;
-		-h|--help) usage help;;
+		-c|--conf) CONF="$2" shift 2;;
+		-c*) CONF="$(echo "$1" | cut -c"3-")" shift;;
+		--conf=*) CONF="$(echo "$1" | cut -c"8-")" shift;;
+		-v|--verbose) VERBOSE=1 shift;;
+		-h|--help) usage 0;;
 		-*) echo "# [freight] unknown switch: $1" >&2;;
 		*) break;;
 	esac
 done
-. freight-setup
+
+. "$(dirname $(dirname $0))/lib/freight/conf.sh"
 
 # The non-option argument(s) following the last option are package files.
 # Binary packages have only one but source packages require three.  When the
@@ -45,22 +36,20 @@ while [ "$#" -gt 0 ]
 do
 	case "$1" in
 		*.deb|*.dsc|*.orig.tar.gz|*.diff.gz|*.debian.tar.gz)
-			PATHNAMES="$PATHNAMES $1"
-			shift;;
-		*.build|*.changes)
-			shift;;
+			PATHNAMES="$PATHNAMES $1" shift;;
+		*.build|*.changes) shift;;
 		*) break;;
 	esac
 done
-[ -z "$PATHNAMES" ] && usage
-[ -z "$*" ] && usage
+[ -z "$PATHNAMES" ] && usage 1
+[ -z "$*" ] && usage 1
 
 # Create a working directory on the same device as the Freight library and
 # copy this package there.  This used to be a link but is now a copy because
 # later Freight commands will rely on the link count being reduced to one.
 mkdir -p "$VARLIB"
 TMP="$(mktemp -d "$VARLIB/work.$$.XXXXXXXXXX")"
-trap "rm -rf \"$TMP\"" 0
+trap "rm -rf \"$TMP\"" EXIT INT TERM
 for PATHNAME in $PATHNAMES
 do
 	cp "$PATHNAME" "$TMP/"
@@ -80,7 +69,7 @@ do
 	for DIRNAME in "$@"
 	do
 		mkdir -p "$DIRNAME"
-		ln "$TMP/$FILENAME" "$DIRNAME/$FILENAME" 2>/dev/null &&
+		ln "$TMP/$FILENAME" "$DIRNAME/$FILENAME" 2>"/dev/null" &&
 		echo "# [freight] added $PATHNAME to $DIRNAME" >&2 ||
 		echo "# [freight] $DIRNAME already has $PATHNAME" >&2
 	done
