@@ -1,4 +1,4 @@
-VERSION=0.1.1
+VERSION=0.3.2
 BUILD=1
 
 prefix=/usr/local
@@ -11,6 +11,7 @@ all:
 
 clean:
 	rm -rf *.deb debian man/man*/*.html
+	find . -name '*~' -delete
 
 install: install-bin install-lib install-man install-sysconf
 
@@ -29,7 +30,7 @@ install-man:
 
 install-sysconf:
 	find etc -type d -printf %P\\0 | xargs -0r -I__ install -d $(DESTDIR)$(sysconfdir)/__
-	find etc -type f -printf %P\\0 | xargs -0r -I__ install -m644 etc/__ $(DESTDIR)$(sysconfdir)/__
+	find etc -type f -not -name freight.conf -printf %P\\0 | xargs -0r -I__ install -m644 etc/__ $(DESTDIR)$(sysconfdir)/__
 
 uninstall: uninstall-bin uninstall-lib uninstall-man uninstall-sysconf
 
@@ -54,17 +55,18 @@ uninstall-sysconf:
 
 build:
 	make install prefix=/usr sysconfdir=/etc DESTDIR=debian
-	fpm -s dir -t deb -C debian \
-		-n freight -v $(VERSION)-$(BUILD) -a all \
+	fpm -s dir -t deb \
+		-n freight -v $(VERSION) --iteration $(BUILD) -a all \
 		-d coreutils -d dash -d dpkg -d gnupg -d grep \
 		-m "Richard Crowley <r@rcrowley.org>" \
 		--url "https://github.com/rcrowley/freight" \
-		--description "A modern take on the Debian archive."
+		--description "A modern take on the Debian archive." \
+		-C debian .
 	make uninstall prefix=/usr sysconfdir=/etc DESTDIR=debian
 
 deploy:
-	scp -i ~/production.pem freight_$(VERSION)-$(BUILD)_all.deb ubuntu@packages.devstructure.com:
-	ssh -i ~/production.pem -t ubuntu@packages.devstructure.com "sudo freight add freight_$(VERSION)-$(BUILD)_all.deb apt/lenny apt/squeeze apt/lucid apt/maverick apt/natty apt/oneiric && rm freight_$(VERSION)-$(BUILD)_all.deb && sudo freight cache apt/lenny apt/squeeze apt/lucid apt/maverick apt/natty apt/oneiric"
+	scp freight_$(VERSION)-$(BUILD)_all.deb freight@packages.rcrowley.org:
+	ssh -t freight@packages.rcrowley.org "freight add freight_$(VERSION)-$(BUILD)_all.deb apt/lenny apt/squeeze apt/lucid apt/maverick apt/natty apt/oneiric apt/precise && rm freight_$(VERSION)-$(BUILD)_all.deb && freight cache apt/lenny apt/squeeze apt/lucid apt/maverick apt/natty apt/oneiric apt/precise"
 
 man:
 	find man -name \*.ronn | xargs -n1 ronn --manual=Freight --style=toc
